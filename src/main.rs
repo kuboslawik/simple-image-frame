@@ -16,7 +16,7 @@ struct Args {
     full_time: u32,
 
     /// List of the pictures
-    #[arg(short, long, default_values = &["/home/kuba/Obrazy/1.png", "/home/kuba/Obrazy/2.png"])]
+    #[arg(short, long, default_values = &["/home/kuba/Obrazy/1.jpg", "/home/kuba/Obrazy/2.jpg"])]
     pictures_list: Vec<String>
 }
 
@@ -32,8 +32,15 @@ fn main() {
         .title("Hello, World")
         .build();
 
-    // Przeniesione przed pętlę, aby zachować stan cache'u
-    let image_loader = image_loader::ImageLoaderWorker::build(3);
+    let mut image_loader = image_loader::ImageLoaderWorker::build(3);
+    
+    for path in &args.pictures_list {
+        image_loader.load_image(path);
+    }
+
+    for (i, img) in image_loader.cache.iter().enumerate() {
+        println!("Picture {}: {} | Taken at: {}", i, img.path, img.date_str());
+    }
 
     while !rl.window_should_close() {
         let mut d = rl.begin_drawing(&thread);

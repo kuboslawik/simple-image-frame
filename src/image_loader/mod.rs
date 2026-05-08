@@ -1,4 +1,5 @@
 pub mod prepared_image;
+
 use prepared_image::PreparedImage;
 
 pub struct ImageLoaderWorker {
@@ -13,6 +14,13 @@ impl ImageLoaderWorker {
             cache_size: v_cache_size,
             cache: Vec::with_capacity(v_cache_size),
             ready: true
+        }
+    }
+    
+    pub fn load_image(&mut self, path: &str) {
+        match prepared_image::PreparedImage::new(path) {
+            Ok(p) => self.cache.push(p),
+            Err(e) => println!("Error: {}", e),
         }
     }
 
