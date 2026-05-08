@@ -1,0 +1,8 @@
+[package]
+name = "simple-image-frame"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+raylib = "5.5.1"
+clap = { version = "4.0", features = ["derive"] }
