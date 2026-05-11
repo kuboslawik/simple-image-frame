@@ -1,15 +1,16 @@
 use raylib::prelude::Image;
 
-
 pub struct PreparedImage {
     pub image: Image,
     pub path: String,
     pub date: Option<String>,
 }
 
+unsafe impl Send for PreparedImage {}
+unsafe impl Sync for PreparedImage {}
+
 impl PreparedImage {
     pub fn new(path: &str) -> Result<Self, String> {
-   
         let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
         let mut bufreader = std::io::BufReader::new(&file);
         let exifreader = exif::Reader::new();

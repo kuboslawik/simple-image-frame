@@ -1,30 +1,87 @@
 pub mod prepared_image;
 
+//Raylib
 use prepared_image::PreparedImage;
 
+// Threading
+use std::sync::{Arc, Mutex};
+use std::{thread, time::Duration};
+
 pub struct ImageLoaderWorker {
-    pub cache_size: usize,
-    pub cache: Vec<PreparedImage>,
-    pub ready: bool
+    state: Arc<Mutex<LoaderInnerStructure>>,
+}
+
+struct LoaderInnerStructure {
+    cache_size: usize,
+    cache: Vec<PreparedImage>,
+    paths: Vec<String>,
+    current_index: usize,
+    finished: bool,
 }
 
 impl ImageLoaderWorker {
-    pub fn build(v_cache_size: usize) -> Self {
-        Self{
-            cache_size: v_cache_size,
-            cache: Vec::with_capacity(v_cache_size),
-            ready: true
-        }
-    }
-    
-    pub fn load_image(&mut self, path: &str) {
-        match prepared_image::PreparedImage::new(path) {
-            Ok(p) => self.cache.push(p),
-            Err(e) => println!("Error: {}", e),
+    pub fn build(cache_size: usize, paths: Vec<String>) -> Self {
+        let inner_structure = LoaderInnerStructure {
+            cache_size,
+            cache: Vec::with_capacity(cache_size),
+            paths,
+            current_index: 0,
+            finished: false,
+        };
+        Self {
+            state: Arc::new(Mutex::new(inner_structure)),
         }
     }
 
-    pub fn print_cache_size(&self) -> String {
-        format!("Cache size is {}", self.cache_size)
-    }    
+    pub fn start_worker(&self) {
+        let state = Arc::clone(&self.state);
+
+        thread::spawn(move || {
+            loop {
+                let (path, should_load) = {
+                    let mut inner_structure = state.lock().unwrap();
+                    if inner_structure.current_index >= inner_structure.paths.len() {
+                        inner_structure.finished = true;
+                        return;
+                    } else if inner_structure.cache.len() < inner_structure.cache_size
+                        && !inner_structure.paths.is_empty()
+                    {
+                        (
+                            Some(inner_structure.paths[inner_structure.current_index].clone()),
+                            true,
+                        )
+                    } else {
+                        (None, false)
+                    }
+                };
+
+                if should_load && path.is_some() {
+                    let p = path.unwrap();
+                    match PreparedImage::new(&p) {
+                        Ok(img) => {
+                            let mut inner_structure = state.lock().unwrap();
+                            inner_structure.cache.push(img);
+                            inner_structure.current_index = (inner_structure.current_index + 1);
+                        }
+                        Err(e) => {
+                            println!("Error loading image {}: {}", p, e);
+                            let mut inner_structure = state.lock().unwrap();
+                            inner_structure.current_index = (inner_structure.current_index + 1);
+                        }
+                    }
+                } else {
+                    thread::sleep(Duration::from_millis(100));
+                }
+            }
+        });
+    }
+
+    pub fn get_next_image(&self) -> Option<PreparedImage> {
+        let mut inner_structure = self.state.lock().unwrap();
+        if !inner_structure.cache.is_empty() {
+            Some(inner_structure.cache.remove(0))
+        } else {
+            None
+        }
+    }
 }

@@ -1,5 +1,5 @@
-use raylib::prelude::*;
 use clap::Parser;
+use raylib::prelude::*;
 
 mod image_loader;
 
@@ -16,15 +16,14 @@ struct Args {
     full_time: u32,
 
     /// List of the pictures
-    #[arg(short, long, default_values = &["/home/kuba/Obrazy/1.jpg", "/home/kuba/Obrazy/2.jpg"])]
-    pictures_list: Vec<String>
+    #[arg(short, long, default_values = &["/home/kuba/Obrazy/1.jpg", "/home/kuba/Obrazy/2.jpg", "/home/kuba/Obrazy/3.jpg", "/home/kuba/Obrazy/4.jpg", "/home/kuba/Obrazy/5.jpg",])]
+    pictures_list: Vec<String>,
 }
 
-const SCREEN_W :i32 = 1024;
-const SCREEN_H :i32 = 768;
+const SCREEN_W: i32 = 1024;
+const SCREEN_H: i32 = 768;
 
 fn main() {
-
     let args = Args::parse();
 
     let (mut rl, thread) = raylib::init()
@@ -32,22 +31,44 @@ fn main() {
         .title("Hello, World")
         .build();
 
-    let mut image_loader = image_loader::ImageLoaderWorker::build(3);
-    
-    for path in &args.pictures_list {
-        image_loader.load_image(path);
-    }
+    rl.set_target_fps(60);
 
-    for (i, img) in image_loader.cache.iter().enumerate() {
-        println!("Picture {}: {} | Taken at: {}", i, img.path, img.date_str());
-    }
+    let mut image_loader = image_loader::ImageLoaderWorker::build(3, args.pictures_list);
+    image_loader.start_worker();
+
+    let mut active_texture: Option<Texture2D> = None;
+    let mut next_texture: Option<Texture2D> = None;
+    let mut last_update = std::time::Instant::now();
 
     while !rl.window_should_close() {
+        if active_texture.is_none() || last_update.elapsed().as_secs() >= args.display_time as u64 {
+            if let Some(prepared) = image_loader.get_next_image() {
+                let new_texture = rl
+                    .load_texture_from_image(&thread, &prepared.image)
+                    .unwrap();
+                active_texture = Some(new_texture);
+                last_update = std::time::Instant::now();
+            }
+        }
+
         let mut d = rl.begin_drawing(&thread);
-        let cache_size_string= String::from(image_loader.cache_size.to_string());
 
         d.clear_background(Color::WHITE);
         d.draw_text(&args.display_time.to_string(), 12, 12, 20, Color::BLACK);
-        d.draw_text(&cache_size_string, 21, 21, 20, Color::BLACK);
+
+        if let Some(ref tex) = active_texture {
+            d.draw_texture(tex, 0, 0, Color::WHITE);
+        }
+
+        d.draw_text(
+            &format!(
+                "Next change in: {}s",
+                args.display_time as i64 - last_update.elapsed().as_secs() as i64
+            ),
+            12,
+            12,
+            20,
+            Color::RED,
+        );
     }
 }
