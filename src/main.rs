@@ -20,20 +20,21 @@ struct Args {
     pictures_list: Vec<String>,
 }
 
-const SCREEN_W: i32 = 1024;
-const SCREEN_H: i32 = 768;
-
 fn main() {
     let args = Args::parse();
 
     let (mut rl, thread) = raylib::init()
-        .size(SCREEN_W, SCREEN_H)
-        .title("Hello, World")
+        .size(0, 0)
+        .fullscreen()
+        .title("Simple Image Slideshow")
         .build();
 
     rl.set_target_fps(60);
 
-    let mut image_loader = image_loader::ImageLoaderWorker::build(3, args.pictures_list);
+    let target_w = rl.get_screen_width();
+    let target_h = rl.get_screen_height();
+
+    let mut image_loader = image_loader::ImageLoaderWorker::build(3, args.pictures_list, target_w, target_h);
     image_loader.start_worker();
 
     let mut active_texture: Option<Texture2D> = None;
@@ -54,7 +55,6 @@ fn main() {
         let mut d = rl.begin_drawing(&thread);
 
         d.clear_background(Color::WHITE);
-        d.draw_text(&args.display_time.to_string(), 12, 12, 20, Color::BLACK);
 
         if let Some(ref tex) = active_texture {
             d.draw_texture(tex, 0, 0, Color::WHITE);

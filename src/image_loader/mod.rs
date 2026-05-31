@@ -17,16 +17,20 @@ struct LoaderInnerStructure {
     paths: Vec<String>,
     current_index: usize,
     finished: bool,
+    target_width: i32,
+    target_height: i32,
 }
 
 impl ImageLoaderWorker {
-    pub fn build(cache_size: usize, paths: Vec<String>) -> Self {
+    pub fn build(cache_size: usize, paths: Vec<String>, target_width: i32, target_height: i32) -> Self {
         let inner_structure = LoaderInnerStructure {
             cache_size,
             cache: Vec::with_capacity(cache_size),
             paths,
             current_index: 0,
             finished: false,
+            target_width,
+            target_height,
         };
         Self {
             state: Arc::new(Mutex::new(inner_structure)),
@@ -38,7 +42,7 @@ impl ImageLoaderWorker {
 
         thread::spawn(move || {
             loop {
-                let (path, should_load) = {
+                let (path, should_load, tw, th) = {
                     let mut inner_structure = state.lock().unwrap();
                     if inner_structure.current_index >= inner_structure.paths.len() {
                         inner_structure.finished = true;
@@ -49,15 +53,17 @@ impl ImageLoaderWorker {
                         (
                             Some(inner_structure.paths[inner_structure.current_index].clone()),
                             true,
+                            inner_structure.target_width,
+                            inner_structure.target_height,
                         )
                     } else {
-                        (None, false)
+                        (None, false, 0, 0)
                     }
                 };
 
                 if should_load && path.is_some() {
                     let p = path.unwrap();
-                    match PreparedImage::new(&p) {
+                    match PreparedImage::new(&p, tw, th) {
                         Ok(img) => {
                             let mut inner_structure = state.lock().unwrap();
                             inner_structure.cache.push(img);
