@@ -8,7 +8,7 @@ mod image_loader;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Time between photos
-    #[arg(short, long, default_value_t = 20)]
+    #[arg(short, long, default_value_t = 3)]
     display_time: u32,
 
     /// Full time of the slideshow
@@ -34,7 +34,8 @@ fn main() {
     let target_w = rl.get_screen_width();
     let target_h = rl.get_screen_height();
 
-    let mut image_loader = image_loader::ImageLoaderWorker::build(3, args.pictures_list, target_w, target_h);
+    let mut image_loader =
+        image_loader::ImageLoaderWorker::build(3, args.pictures_list, target_w, target_h);
     image_loader.start_worker();
 
     let mut active_texture: Option<Texture2D> = None;

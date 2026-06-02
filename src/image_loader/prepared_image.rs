@@ -1,4 +1,6 @@
 use raylib::prelude::Image;
+use raylib::prelude::Rectangle;
+use std::f32;
 use std::io::{self, Cursor, Read, Seek};
 
 pub struct PreparedImage {
@@ -35,12 +37,51 @@ impl PreparedImage {
             .and_then(|ext| ext.to_str())
             .map(|s| format!(".{}", s))
             .unwrap_or_else(|| ".png".to_string());
+
         let mut image =
             Image::load_image_from_mem(&file_extension, &buffer).map_err(|e| e.to_string())?;
 
         //TODO: scale and resize
 
-        image.resize(target_width, target_height);
+        match orientation {
+            Some(x) => match x {
+                3 => {
+                    image.rotate_cw();
+                    image.rotate_cw();
+                }
+                6 => {
+                    image.rotate_cw();
+                }
+                8 => {
+                    image.rotate_ccw();
+                }
+                _ => {}
+            },
+            None => {}
+        }
+
+        let scale: f32 = f32::min(
+            target_width as f32 / image.width() as f32,
+            target_height as f32 / image.height() as f32,
+        );
+
+        if scale <= 1.0 {
+            let new_width = (image.width as f32 * scale) as i32;
+            let new_height = (image.height as f32 * scale) as i32;
+
+            image.resize(new_width, new_height);
+        }
+
+        //Cropping 2 pixels due to fakeKMS bug on rasperry pi zero 2w
+
+        let crop_rectangle = Rectangle {
+            x: 1.0,
+            y: 1.0,
+            width: target_width as f32 - 2.0,
+            height: target_height as f32 - 2.0,
+        };
+
+        image.crop(crop_rectangle);
 
         Ok(Self {
             image,

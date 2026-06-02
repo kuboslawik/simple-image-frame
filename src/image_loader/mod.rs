@@ -22,7 +22,12 @@ struct LoaderInnerStructure {
 }
 
 impl ImageLoaderWorker {
-    pub fn build(cache_size: usize, paths: Vec<String>, target_width: i32, target_height: i32) -> Self {
+    pub fn build(
+        cache_size: usize,
+        paths: Vec<String>,
+        target_width: i32,
+        target_height: i32,
+    ) -> Self {
         let inner_structure = LoaderInnerStructure {
             cache_size,
             cache: Vec::with_capacity(cache_size),
