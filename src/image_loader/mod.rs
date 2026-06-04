@@ -72,12 +72,12 @@ impl ImageLoaderWorker {
                         Ok(img) => {
                             let mut inner_structure = state.lock().unwrap();
                             inner_structure.cache.push(img);
-                            inner_structure.current_index = (inner_structure.current_index + 1);
+                            inner_structure.current_index = inner_structure.current_index + 1;
                         }
                         Err(e) => {
                             println!("Error loading image {}: {}", p, e);
                             let mut inner_structure = state.lock().unwrap();
-                            inner_structure.current_index = (inner_structure.current_index + 1);
+                            inner_structure.current_index = inner_structure.current_index + 1;
                         }
                     }
                 } else {
@@ -94,5 +94,10 @@ impl ImageLoaderWorker {
         } else {
             None
         }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        let inner = self.state.lock().unwrap();
+        inner.finished && inner.cache.is_empty()
     }
 }

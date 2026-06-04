@@ -1,11 +1,10 @@
 use raylib::prelude::Image;
 use raylib::prelude::Rectangle;
 use std::f32;
-use std::io::{self, Cursor, Read, Seek};
+use std::io::{Cursor, Read};
 
 pub struct PreparedImage {
     pub image: Image,
-    pub path: String,
     pub date: Option<String>,
 }
 
@@ -41,8 +40,6 @@ impl PreparedImage {
         let mut image =
             Image::load_image_from_mem(&file_extension, &buffer).map_err(|e| e.to_string())?;
 
-        //TODO: scale and resize
-
         match orientation {
             Some(x) => match x {
                 3 => {
@@ -72,7 +69,7 @@ impl PreparedImage {
             image.resize(new_width, new_height);
         }
 
-        //Cropping 2 pixels due to fakeKMS bug on rasperry pi zero 2w
+        //Cropping 2 pixels due to FKMS bug on rasperry pi zero 2w
 
         let crop_rectangle = Rectangle {
             x: 1.0,
@@ -83,14 +80,6 @@ impl PreparedImage {
 
         image.crop(crop_rectangle);
 
-        Ok(Self {
-            image,
-            path: path.to_string(),
-            date,
-        })
-    }
-
-    pub fn date_str(&self) -> &str {
-        self.date.as_deref().unwrap_or("No data")
+        Ok(Self { image, date })
     }
 }
