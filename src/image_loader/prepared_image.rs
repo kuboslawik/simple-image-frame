@@ -1,21 +1,16 @@
-use raylib::prelude::Image;
-use raylib::prelude::Rectangle;
-use std::f32;
-use std::io::{Cursor, Read};
+use image::GenericImageView;
+use std::io::Cursor;
 
 pub struct PreparedImage {
-    pub image: Image,
+    pub pixels: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
     pub date: Option<String>,
 }
 
-unsafe impl Send for PreparedImage {}
-unsafe impl Sync for PreparedImage {}
-
 impl PreparedImage {
     pub fn new(path: &str, target_width: i32, target_height: i32) -> Result<Self, String> {
-        let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
+        let buffer = std::fs::read(path).map_err(|e| e.to_string())?;
 
         let mut bufreader = Cursor::new(&buffer);
         let exifreader = exif::Reader::new();
@@ -31,55 +26,40 @@ impl PreparedImage {
                 .and_then(|f| f.value.get_uint(0))
         });
 
-        let file_extension = std::path::Path::new(path)
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|s| format!(".{}", s))
-            .unwrap_or_else(|| ".png".to_string());
-
-        let mut image =
-            Image::load_image_from_mem(&file_extension, &buffer).map_err(|e| e.to_string())?;
+        let mut img = image::load_from_memory(&buffer).map_err(|e| e.to_string())?;
 
         match orientation {
             Some(x) => match x {
-                3 => {
-                    image.rotate_cw();
-                    image.rotate_cw();
-                }
-                6 => {
-                    image.rotate_cw();
-                }
-                8 => {
-                    image.rotate_ccw();
-                }
+                3 => img = img.rotate180(),
+                6 => img = img.rotate90(),
+                8 => img = img.rotate270(),
                 _ => {}
             },
             None => {}
         }
 
         let scale: f32 = f32::min(
-            target_width as f32 / image.width() as f32,
-            target_height as f32 / image.height() as f32,
+            target_width as f32 / img.width() as f32,
+            target_height as f32 / img.height() as f32,
         );
 
         if scale <= 1.0 {
-            let new_width = (image.width as f32 * scale) as i32;
-            let new_height = (image.height as f32 * scale) as i32;
-
-            image.resize(new_width, new_height);
+            let new_width = (img.width() as f32 * scale) as u32;
+            let new_height = (img.height() as f32 * scale) as u32;
+            img = img.resize(new_width, new_height, image::imageops::FilterType::Triangle);
         }
 
-        //Cropping 2 pixels due to FKMS bug on rasperry pi zero 2w
+        // Cropping 2 pixels due to FKMS bug on rasperry pi zero 2w
+        let (w, h) = img.dimensions();
+        let cropped = img.crop_imm(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+        let (final_w, final_h) = cropped.dimensions();
+        let pixels = cropped.to_rgba8().into_raw();
 
-        let crop_rectangle = Rectangle {
-            x: 1.0,
-            y: 1.0,
-            width: target_width as f32 - 2.0,
-            height: target_height as f32 - 2.0,
-        };
-
-        image.crop(crop_rectangle);
-
-        Ok(Self { image, date })
+        Ok(Self { 
+            pixels, 
+            width: final_w, 
+            height: final_h, 
+            date 
+        })
     }
 }

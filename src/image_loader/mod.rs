@@ -1,9 +1,7 @@
 pub mod prepared_image;
 
-//Raylib
-use prepared_image::PreparedImage;
+use self::prepared_image::PreparedImage;
 
-// Threading
 use std::sync::{Arc, Mutex};
 use std::{thread, time::Duration};
 
@@ -72,12 +70,12 @@ impl ImageLoaderWorker {
                         Ok(img) => {
                             let mut inner_structure = state.lock().unwrap();
                             inner_structure.cache.push(img);
-                            inner_structure.current_index = inner_structure.current_index + 1;
+                            inner_structure.current_index += 1;
                         }
                         Err(e) => {
                             println!("Error loading image {}: {}", p, e);
                             let mut inner_structure = state.lock().unwrap();
-                            inner_structure.current_index = inner_structure.current_index + 1;
+                            inner_structure.current_index += 1;
                         }
                     }
                 } else {
