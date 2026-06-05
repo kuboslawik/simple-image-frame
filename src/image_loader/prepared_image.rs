@@ -55,11 +55,11 @@ impl PreparedImage {
         let (final_w, final_h) = cropped.dimensions();
         let pixels = cropped.to_rgba8().into_raw();
 
-        Ok(Self { 
-            pixels, 
-            width: final_w, 
-            height: final_h, 
-            date 
+        Ok(Self {
+            pixels,
+            width: final_w,
+            height: final_h,
+            date,
         })
     }
 }

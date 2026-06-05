@@ -22,7 +22,7 @@ struct Args {
     pictures_list: Vec<String>,
 }
 
-#[macroquad::main("Simple Image Slideshow")]
+#[macroquad::main("simple-image-frame")]
 async fn main() {
     let args = Args::parse();
 
@@ -32,7 +32,8 @@ async fn main() {
     let image_loader = ImageLoaderWorker::build(3, args.pictures_list, target_w, target_h);
     image_loader.start_worker();
 
-    let font = load_ttf_font("./fonts/digital-7.ttf").await.expect("Font not found");
+    let font =
+        load_ttf_font_from_bytes(include_bytes!("../fonts/digital-7.ttf")).expect("Font not found");
 
     let mut current_texture: Option<Texture2D> = None;
     let mut old_texture: Option<Texture2D> = None;
@@ -70,13 +71,13 @@ async fn main() {
         if timer >= args.display_time as f32 && !is_transitioning {
             if let Some(prepared) = image_loader.get_next_image() {
                 old_texture = current_texture.take();
-                
+
                 let tex = Texture2D::from_rgba8(
-                    prepared.width as u16, 
-                    prepared.height as u16, 
-                    &prepared.pixels
+                    prepared.width as u16,
+                    prepared.height as u16,
+                    &prepared.pixels,
                 );
-                
+
                 current_texture = Some(tex);
                 current_exif_text = prepared.date.clone().unwrap_or_default();
                 transition_alpha = 0.0;
@@ -106,9 +107,25 @@ async fn main() {
                 font_size: 20,
                 ..Default::default()
             };
-            
-            draw_text_ex(&current_exif_text, 22.0, h - 38.0, TextParams { color: BLACK, ..params });
-            draw_text_ex(&current_exif_text, 20.0, h - 40.0, TextParams { color: WHITE, ..params });
+
+            draw_text_ex(
+                &current_exif_text,
+                22.0,
+                h - 38.0,
+                TextParams {
+                    color: BLACK,
+                    ..params
+                },
+            );
+            draw_text_ex(
+                &current_exif_text,
+                20.0,
+                h - 40.0,
+                TextParams {
+                    color: WHITE,
+                    ..params
+                },
+            );
         }
 
         next_frame().await;
@@ -119,7 +136,7 @@ fn draw_tex(tex: &Texture2D, alpha: f32) {
     let sw = screen_width();
     let sh = screen_height();
     let s = f32::min((sw - 4.0) / tex.width(), (sh - 4.0) / tex.height());
-    
+
     let w = tex.width() * s;
     let h = tex.height() * s;
     let x = (sw - w) / 2.0;
