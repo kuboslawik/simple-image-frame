@@ -1,6 +1,6 @@
 use clap::Parser;
 use macroquad::prelude::*;
-use std::time::Instant;
+use std::{thread::sleep, time::Instant};
 
 mod image_loader;
 use image_loader::ImageLoaderWorker;
@@ -57,7 +57,11 @@ async fn main() {
 
     loop {
         let dt = get_frame_time().min(0.1);
-        //TODO: Limit FPS to 30
+
+        if dt < 0.0333 {
+            sleep(std::time::Duration::from_secs_f32(0.0333 - dt));
+        }
+
         if slideshow_start.elapsed().as_secs() >= args.full_time as u64 {
             break;
         }
