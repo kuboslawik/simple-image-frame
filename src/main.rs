@@ -10,7 +10,7 @@ use image_loader::ImageLoaderWorker;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Time between photos
-    #[arg(short, long, default_value_t = 3)]
+    #[arg(short, long, default_value_t = 20)]
     display_time: u32,
 
     /// Full time of the slideshow
@@ -22,7 +22,17 @@ struct Args {
     pictures_list: Vec<String>,
 }
 
-#[macroquad::main("simple-image-frame")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "simple-image-frame".to_owned(),
+        window_width: 1024,
+        window_height: 768,
+        fullscreen: true,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let args = Args::parse();
 
@@ -47,7 +57,7 @@ async fn main() {
 
     loop {
         let dt = get_frame_time().min(0.1);
-
+        //TODO: Limit FPS to 30
         if slideshow_start.elapsed().as_secs() >= args.full_time as u64 {
             break;
         }
@@ -111,7 +121,7 @@ async fn main() {
             draw_text_ex(
                 &current_exif_text,
                 22.0,
-                h - 38.0,
+                h - 18.0,
                 TextParams {
                     color: BLACK,
                     ..params
@@ -120,7 +130,7 @@ async fn main() {
             draw_text_ex(
                 &current_exif_text,
                 20.0,
-                h - 40.0,
+                h - 20.0,
                 TextParams {
                     color: WHITE,
                     ..params
