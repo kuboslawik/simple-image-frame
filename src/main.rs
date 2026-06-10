@@ -1,6 +1,6 @@
 use clap::Parser;
 use macroquad::prelude::*;
-use std::{thread::sleep, time::Instant};
+use std::thread::sleep;
 
 mod image_loader;
 use image_loader::ImageLoaderWorker;
@@ -20,6 +20,10 @@ struct Args {
     /// List of the pictures
     #[arg(short, long, required = true, num_args = 1..)]
     pictures_list: Vec<String>,
+
+    /// Hide photo timestamp
+    #[arg(long)]
+    hide_timestamp: bool,
 }
 
 fn window_conf() -> Conf {
@@ -39,7 +43,16 @@ async fn main() {
     let target_w = screen_width() as i32;
     let target_h = screen_height() as i32;
 
-    let image_loader = ImageLoaderWorker::build(3, args.pictures_list, target_w, target_h);
+    let slideshow_repeat = (args.full_time as f32
+        / (args.pictures_list.len() as f32 * args.display_time as f32))
+        .ceil() as usize;
+
+    let mut full_slide_show_paths = Vec::with_capacity(args.pictures_list.len() * slideshow_repeat);
+    for _ in 0..slideshow_repeat {
+        full_slide_show_paths.extend(args.pictures_list.clone());
+    }
+
+    let image_loader = ImageLoaderWorker::build(3, full_slide_show_paths, target_w, target_h);
     image_loader.start_worker();
 
     let font =
@@ -53,17 +66,12 @@ async fn main() {
     let mut transition_alpha = 1.0f32;
     let mut is_transitioning = false;
     let fade_speed = 2.0f32;
-    let slideshow_start = Instant::now();
 
     loop {
         let dt = get_frame_time().min(0.1);
 
         if dt < 0.0333 {
             sleep(std::time::Duration::from_secs_f32(0.0333 - dt));
-        }
-
-        if slideshow_start.elapsed().as_secs() >= args.full_time as u64 {
-            break;
         }
 
         if is_key_pressed(KeyCode::Escape) {
@@ -114,7 +122,7 @@ async fn main() {
             draw_tex(tex, 1.0);
         }
 
-        if !current_exif_text.is_empty() {
+        if !current_exif_text.is_empty() && !args.hide_timestamp {
             let h = screen_height();
             let params = TextParams {
                 font: Some(&font),
