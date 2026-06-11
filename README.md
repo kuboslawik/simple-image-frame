@@ -48,3 +48,7 @@ Provided STL project can be altered to suit your needs and selection of hardware
 Case consists of several parts: front frame, back frame, inside frame and leg.
 ![stl_part_front](assets/stl_image_front.png)
 ![stl_part_back](assets/stl_image_back.png)
+
+# C++ version
+
+In assets folder you can find C++ version of the code which uses Raylib, which can be used in DRM/KMS mode.
