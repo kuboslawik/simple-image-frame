@@ -40,19 +40,27 @@ fn window_conf() -> Conf {
 async fn main() {
     let args = Args::parse();
 
-    let target_w = screen_width() as i32;
-    let target_h = screen_height() as i32;
+    if args.display_time < 1 {
+        println!("Display time must be equal or greater than 1");
+        return;
+    }
+
+    if args.full_time < 1 {
+        println!("Full slideshow time must be greater than 0");
+        return;
+    }
 
     let slideshow_repeat = (args.full_time as f32
         / (args.pictures_list.len() as f32 * args.display_time as f32))
         .ceil() as usize;
 
-    let mut full_slide_show_paths = Vec::with_capacity(args.pictures_list.len() * slideshow_repeat);
-    for _ in 0..slideshow_repeat {
-        full_slide_show_paths.extend(args.pictures_list.clone());
-    }
-
-    let image_loader = ImageLoaderWorker::build(3, full_slide_show_paths, target_w, target_h);
+    let image_loader = ImageLoaderWorker::build(
+        3,
+        args.pictures_list,
+        slideshow_repeat,
+        screen_width() as i32,
+        screen_height() as i32,
+    );
     image_loader.start_worker();
 
     let font =
@@ -63,19 +71,20 @@ async fn main() {
     let mut current_exif_text = String::new();
 
     let mut timer = args.display_time as f32;
-    let mut transition_alpha = 1.0f32;
+    let mut transition_alpha = 1.0;
     let mut is_transitioning = false;
-    let fade_speed = 2.0f32;
+    let fade_speed = 2.0;
 
     loop {
-        let dt = get_frame_time().min(0.1);
-
-        if dt < 0.0333 {
-            sleep(std::time::Duration::from_secs_f32(0.0333 - dt));
-        }
+        let mut dt = get_frame_time().min(0.1);
 
         if is_key_pressed(KeyCode::Escape) {
             break;
+        }
+
+        if dt < 0.0333 {
+            sleep(std::time::Duration::from_secs_f32(0.0333 - dt));
+            dt = 0.0333;
         }
 
         if is_transitioning {
